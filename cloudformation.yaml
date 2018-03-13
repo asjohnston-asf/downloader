@@ -1,0 +1,159 @@
+AWSTemplateFormatVersion: 2010-09-09
+
+Parameters:
+
+  BatchServiceRole:
+    Type: String
+
+  InstanceRole:
+    Type: String
+
+  SpotFleetRole:
+    Type: String
+
+  VpcId:
+    Type: AWS::EC2::VPC::Id
+
+  Subnets:
+    Type: List<AWS::EC2::Subnet::Id>
+
+  Username:
+    Type: String
+
+  Password:
+    Type: String
+    NoEcho: true
+
+Resources:
+
+  SecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupName: !Ref AWS::StackName
+      GroupDescription: !Sub "Security group for ${AWS::StackName} machines"
+      VpcId: !Ref VpcId
+
+  ComputeEnvironment:
+    Type: AWS::Batch::ComputeEnvironment
+    Properties:
+      Type: MANAGED
+      ServiceRole: !Ref BatchServiceRole
+      ComputeEnvironmentName: !Ref AWS::StackName
+      ComputeResources:
+        Type: SPOT
+        BidPercentage: 100
+        SpotIamFleetRole: !Ref SpotFleetRole
+        MinvCpus: 0
+        MaxvCpus: 4
+        InstanceTypes:
+        - optimal
+        InstanceRole: !Ref InstanceRole
+        SecurityGroupIds:
+        - !Ref SecurityGroup
+        Subnets: !Ref Subnets
+        Tags:
+          Name: !Ref AWS::StackName
+
+  JobQueue:
+    Type: AWS::Batch::JobQueue
+    Properties:
+      JobQueueName: !Ref AWS::StackName
+      Priority: 1
+      ComputeEnvironmentOrder:
+      - ComputeEnvironment: !Ref ComputeEnvironment
+        Order: 1
+
+  JobDefinition:
+    Type: AWS::Batch::JobDefinition
+    Properties:
+      JobDefinitionName: !Ref AWS::StackName
+      Type: container
+      Parameters:
+        url: ""
+        username: !Ref Username
+        password: !Ref Password
+      ContainerProperties:
+        Image: mwendler/wget
+        Vcpus: 1
+        Memory: 128
+        Command:
+        - --no-check-certificate
+        - --no-verbose
+        - --http-user
+        - Ref::username
+        - --http-password
+        - Ref::password
+        - Ref::url
+      RetryStrategy:
+        Attempts: 1
+
+  LambdaLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub "/aws/lambda/${AWS::StackName}"
+      RetentionInDays: 30
+
+  LambdaRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Ref AWS::StackName
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          Action: sts:AssumeRole
+          Principal:
+            Service: lambda.amazonaws.com
+          Effect: Allow
+      Policies:
+      - PolicyName: policy
+        PolicyDocument:
+          Version: 2012-10-17
+          Statement:
+          - Effect: Allow
+            Action:
+            - logs:CreateLogStream
+            - logs:PutLogEvents
+            Resource: !GetAtt LambdaLogGroup.Arn
+          - Effect: Allow
+            Action: batch:SubmitJob
+            Resource: "*"
+
+  LambdaFunction:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: !Ref AWS::StackName
+      Code: src/
+      Environment:
+        Variables:
+          JOB_QUEUE: !Ref JobQueue
+          JOB_DEFINITION: !Ref JobDefinition
+      Handler: main.lambda_handler
+      MemorySize: 128
+      Role: !GetAtt LambdaRole.Arn
+      Runtime: python2.7
+      Timeout: 60 
+
+  Schedule:
+    Type: AWS::Events::Rule
+    Properties:
+      Name: !Ref AWS::StackName
+      ScheduleExpression: "cron(*/5 * * * ? *)"
+      State: ENABLED
+      Targets:
+      - Arn: !GetAtt LambdaFunction.Arn
+        Id: !Ref LambdaFunction
+        Input: |-
+          {
+            "urls": [
+              "https://datapool.asf.alaska.edu/OCN/SA/S1A_IW_OCN__2SDV_20180302T141553_20180302T141618_020837_023BBA_5956.zip",
+              "https://datapool.asf.alaska.edu/OCN/SB/S1B_IW_OCN__2SDV_20180310T015746_20180310T015811_009963_0120E8_8FDF.zip"
+            ]
+          }
+
+  EventPermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName: !GetAtt LambdaFunction.Arn
+      Action: lambda:InvokeFunction
+      Principal: events.amazonaws.com
+      SourceArn: !GetAtt Schedule.Arn
