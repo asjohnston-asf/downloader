@@ -149,7 +149,12 @@ Resources:
           {
             "urls": [
               "https://datapool.asf.alaska.edu/OCN/SA/S1A_IW_OCN__2SDV_20180302T141553_20180302T141618_020837_023BBA_5956.zip",
-              "https://datapool.asf.alaska.edu/OCN/SB/S1B_IW_OCN__2SDV_20180310T015746_20180310T015811_009963_0120E8_8FDF.zip"
+              "https://datapool.asf.alaska.edu/OCN/SB/S1B_IW_OCN__2SDV_20180310T015746_20180310T015811_009963_0120E8_8FDF.zip",
+              "https://datapool.asf.alaska.edu/SLC/SB/S1B_WV_SLC__1SSV_20180301T155638_20180301T163234_009840_011CB6_38FD.zip",
+              "https://datapool.asf.alaska.edu/GRD_HD/SB/S1B_IW_GRDH_1SDV_20180301T003905_20180301T003930_009831_011C71_DB79.zip",
+              "https://datapool.asf.alaska.edu/GRD_MD/SA/S1A_EW_GRDM_1SDH_20180303T054606_20180303T054656_020846_023C0D_6A19.zip",
+              "https://datapool.asf.alaska.edu/GRD_HD/SA/S1A_EW_GRDH_1SDH_20141003T035907_20141003T035940_002660_002F63_DA91.zip",
+              "https://datapool.asf.alaska.edu/GRD_HD/SA/S1A_EW_GRDH_1SDH_20141003T070702_20141003T070802_002662_002F6A_5CA2.zip"
             ]
           }
 
