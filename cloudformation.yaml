@@ -127,6 +127,7 @@ Resources:
       Code: src/
       Environment:
         Variables:
+          LOG_LEVEL: INFO
           JOB_QUEUE: !Ref JobQueue
           JOB_DEFINITION: !Ref JobDefinition
       Handler: main.lambda_handler
