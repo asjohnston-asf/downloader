@@ -79,6 +79,8 @@ Resources:
         Command:
         - --no-check-certificate
         - --no-verbose
+        - --output-document
+        - /dev/null
         - --http-user
         - Ref::username
         - --http-password
